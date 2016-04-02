@@ -33,6 +33,9 @@ https://github.com/sparkfun/phant-arduino
 - Create a phant stream [here](https://data.sparkfun.com/streams/make)
   - The fields should be ```id alarm alarmduration rssi time```
   - Edit the public and private keys into Secrets.h
+- Follow instructions on setting up Temboo account and gmail [here](https://temboo.com/arduino/others/send-an-email)
+  - copy all the TEMBOO settings from the header section (normally Temboo.h) and put in Secrets.h
+  - 
 
 ## Example data:
 * [Raw Data](https://data.sparkfun.com/scotts_sump_pump)
