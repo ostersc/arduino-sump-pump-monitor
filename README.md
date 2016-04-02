@@ -28,6 +28,12 @@ The Adafruit Feather HUZZAH actually looks easier to program; it should work as 
 https://github.com/tzapu/WiFiManager
 https://github.com/sparkfun/phant-arduino
 
+## SETUP
+- Create a file called Secrets.h, copying the commented out block from the ino sketch
+- Create a phant stream [here](https://data.sparkfun.com/streams/make)
+  - The fields should be ```id alarm alarmduration rssi time```
+  - Edit the public and private keys into Secrets.h
+
 ## Example data:
 * [Raw Data](https://data.sparkfun.com/scotts_sump_pump)
 * [View graph](https://analog.io/sparkfun/LQJZlmzWDlTNl7XnnWW4)
