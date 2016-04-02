@@ -2,10 +2,7 @@
 Arduino project for ESP8266 to monitor backup sump pump and water level, sending alerts upon issues.
 
 The project monitors my sump pump for when its backup pump engages, or when the main pump is running on battery power (due to power outage).  The project continually monitors the pumps, reporting data to phant (data.sparkfun.com) indicating the pump status.  The board is equiped with a LiPo battery backup, so it is still able to report in the event of a power outage.
-
-
 ![Graph](http://i.imgur.com/4nR9MMW.png)
-
 
 ## PUMP
 I have the Basement Watchdog BW4000 Sump Pump, which has a backup pump, battery, and remote terminal to indicate alarms.
@@ -17,14 +14,13 @@ Any similar system could be used, or a homebrew sensor could be created, as all 
 I'm using the Sparkfun ESP8266 Thing (https://www.sparkfun.com/products/13231)
 The Adafruit Feather HUZZAH actually looks easier to program; it should work as well (https://www.adafruit.com/products/2821)
 
-
 ## CURRENT STATUS
 *  Sump alarm monitoring (backup pump used, power loss, fuse, or battery issue)
 *  Reporting to phant (signal strength, alarm state, alarm duration)
   
 ## TODO
 * Water level alarm (float switch or sonar level threshold)
-* Text or email when alarm state entered
+* Text or email when alarm state entered (via https://temboo.com/arduino/others/send-an-email)
 * Collect phant settings and alert email via the wifi capture screen (via https://github.com/tzapu/WiFiManager#custom-parameters)
 * 3D print an enclosure
 
