@@ -17,10 +17,10 @@ The Adafruit Feather HUZZAH actually looks easier to program; it should work as 
 ## CURRENT STATUS
 *  Sump alarm monitoring (backup pump used, power loss, fuse, or battery issue)
 *  Reporting to phant (signal strength, alarm state, alarm duration)
-  
+* Email when alarm state entered (via https://temboo.com/arduino/others/send-an-email)
+
 ## TODO
 * Water level alarm (float switch or sonar level threshold)
-* Text or email when alarm state entered (via https://temboo.com/arduino/others/send-an-email)
 * Collect phant settings and alert email via the wifi capture screen (via https://github.com/tzapu/WiFiManager#custom-parameters)
 * 3D print an enclosure
 
@@ -35,7 +35,6 @@ https://github.com/sparkfun/phant-arduino
   - Edit the public and private keys into Secrets.h
 - Follow instructions on setting up Temboo account and gmail [here](https://temboo.com/arduino/others/send-an-email)
   - copy all the TEMBOO settings from the header section (normally Temboo.h) and put in Secrets.h
-  - 
 
 ## Example data:
 * [Raw Data](https://data.sparkfun.com/scotts_sump_pump)
