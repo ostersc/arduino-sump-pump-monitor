@@ -21,6 +21,7 @@ The Adafruit Feather HUZZAH actually looks easier to program; it should work as 
 
 ## TODO
 * Water level alarm (float switch or sonar level threshold)
+* Battery level monitoring (and maybe deep sleep) (via https://learn.adafruit.com/using-ifttt-with-adafruit-io/wiring#battery-tracking)
 * Collect settings and alert email via the wifi capture screen (via https://github.com/tzapu/WiFiManager#custom-parameters)
 * 3D print an enclosure
 
