@@ -1,16 +1,26 @@
 
 #include <ESP8266WiFi.h>
-#include <Phant.h>  // https://github.com/sparkfun/phant-arduino
 #include "WiFiManager.h"  //https://github.com/tzapu/WiFiManager
+#include "Temboo.h"  //https://temboo.com/library/ https://github.com/arduino-libraries/Temboo
+#include "ThingSpeak.h"
+#include "Secrets.h"
+/**
+   COPY THESE INTO A FILE CALLED Secrets.h AND REPLACE THE VALUES FOR YOUR ACCOUNT
+  #define TEMBOO_ACCOUNT "your account"  // Your Temboo account name 
+  #define TEMBOO_APP_KEY_NAME "myFirstApp"  // Your Temboo app key name
+  #define TEMBOO_APP_KEY "your key"  // Your Temboo app key
+   
+  #define EMAIL_USER "example@gmail.com"
+  #define EMAIL_PASSWORD "asdfasdfasdfasdfasdf"
+  #define EMAIL_TO "example@gmail.com"
+  #define EMAIL_CC "example@gmail.com"
+  #define EMAIL_FROM "example@gmail.com"
 
-// Phant detsination server:
-const char phantServer[] = "data.sparkfun.com";
-// Phant public key:
-const char publicKey[] = "LQJZlmzWDlTNl7XnnWW4";
-// Phant private key:
-const char privateKey[] = "REDACTED";
-// Create a Phant object, which we'll use from here on:
-Phant phant(phantServer, publicKey, privateKey);
+  unsigned long myChannelNumber = 123456;
+  const char * myWriteAPIKey = "yourapikey";
+*/
+
+#define EMAIL_SUBJECT "Sump Pump Alarm Triggered!"
 
 const char* SSID = "SumpPumpMonitor";
 
@@ -24,12 +34,16 @@ const int LED_PIN = 5;
 //const int DIGITAL_PIN_4 = 13;
 const int ALARM_PIN = 4;
 
-//phant only lets report every 10 seconds or so
-const unsigned long postRate = 10000;
+//thingspeak only lets report every 15 seconds or so
+const unsigned long postRate = 15000;
 unsigned long lastPost = 0;
 int alarmState = LOW;
+int alarmCount = 0;
 unsigned long lastAlarm = 0;
 String macAddress;
+
+// Use WiFiClient class to create TCP connections
+WiFiClient client;
 
 //comment out to disable debug output
 //#define DEBUG
@@ -92,18 +106,65 @@ void setup() {
   DEBUG_PRINTLN(WiFi.localIP());
   DEBUG_PRINTLN("MAC: ");
   DEBUG_PRINTLN(macAddress);
+
+  ThingSpeak.begin(client);
 }
 
-int postToPhant() {
+void sendSumpAlert() {
+  DEBUG_PRINTLN("Sending alert email!");
+  TembooChoreo SendEmailChoreo(client);
+
+  // Invoke the Temboo client
+  SendEmailChoreo.begin();
+
+  // Set Temboo account credentials
+  SendEmailChoreo.setAccountName(TEMBOO_ACCOUNT);
+  SendEmailChoreo.setAppKeyName(TEMBOO_APP_KEY_NAME);
+  SendEmailChoreo.setAppKey(TEMBOO_APP_KEY);
+
+  // Set Choreo inputs
+  SendEmailChoreo.addInput("CC", EMAIL_CC);
+  SendEmailChoreo.addInput("FromAddress", EMAIL_FROM);
+  SendEmailChoreo.addInput("Username", EMAIL_USER);
+  SendEmailChoreo.addInput("ToAddress", EMAIL_TO);
+  SendEmailChoreo.addInput("Subject", EMAIL_SUBJECT);
+  SendEmailChoreo.addInput("Password", EMAIL_PASSWORD);
+  String MessageBodyValue = "Sump pump alarm triggered!";
+  SendEmailChoreo.addInput("MessageBody", MessageBodyValue);
+
+  // Identify the Choreo to run
+  SendEmailChoreo.setChoreo("/Library/Google/Gmail/SendEmail");
+
+  // Run the Choreo; when results are available, print them to serial
+  SendEmailChoreo.run();
+
+  while (SendEmailChoreo.available()) {
+    char c = SendEmailChoreo.read();
+    DEBUG_PRINT(c);
+  }
+  SendEmailChoreo.close();
+  delay(250);
+  if (client.connected()) {
+    client.stop(); // stop() closes a TCP connection.
+    DEBUG_PRINTLN("Connection closed.");
+  } else {
+    DEBUG_PRINTLN("Connection was not active.");
+  }
+}
+
+int checkAndReport() {
   DEBUG_PRINT("Sending data.");
 
   int oldAlarmState = alarmState;
   alarmState = digitalRead(ALARM_PIN);
+
   if (oldAlarmState != alarmState) {
     if (alarmState == HIGH) {
       lastAlarm = millis();
+      alarmCount++;
       DEBUG_PRINT("Alarm detected at ");
       DEBUG_PRINTLN(lastAlarm);
+      sendSumpAlert();
     } else if (alarmState == LOW) {
       DEBUG_PRINT("Alarm ended at ");
       DEBUG_PRINTLN(millis());
@@ -122,31 +183,15 @@ int postToPhant() {
   // successfully post.
   digitalWrite(LED_PIN, HIGH);
 
-  phant.add("id", macAddress);
-  phant.add("alarm", alarmState);
-  phant.add("alarmduration", alarmDuration);
-  phant.add("rssi", WiFi.RSSI());
-  phant.add("time", millis());
-
-  // Use WiFiClient class to create TCP connections
-  WiFiClient client;
-
-  DEBUG_PRINT("Sending data to ");
-  DEBUG_PRINTLN(phant.url());
-
-  if (client.connect(phantServer, 80) <= 0) {
-    DEBUG_PRINTLN("Failed to connect to server.");
-    return 0;
-  }
-  DEBUG_PRINTLN("Connection Established.");
-  client.println(phant.post());
-
-  delay(1000);
-  while (client.available()) {
-    String line = client.readStringUntil('\r');
-    DEBUG_PRINT(line);
-  }
-  DEBUG_PRINTLN();
+  ThingSpeak.setField(1, macAddress);
+  ThingSpeak.setField(2, alarmState);
+  ThingSpeak.setField(3, alarmDuration);
+  ThingSpeak.setField(4, alarmCount);
+  ThingSpeak.setField(5,  WiFi.RSSI());
+  ThingSpeak.setField(6,  String(millis(), DEC));
+  DEBUG_PRINT("Sending data thingspeak.");
+  // Write the fields that you've set all at once.
+  ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
 
   // Before we exit, turn the LED off.
   digitalWrite(LED_PIN, LOW);
@@ -155,7 +200,7 @@ int postToPhant() {
 
 void loop() {
   if (lastPost + postRate <= millis()) {
-    if (postToPhant()) {
+    if (checkAndReport()) {
       lastPost = millis();
     } else {
       delay(100);
