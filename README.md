@@ -37,3 +37,4 @@ The Adafruit Feather HUZZAH actually looks easier to program; it should work as 
   - ![Channel Setup](http://i.imgur.com/DXxmMLK.png)
 - Follow instructions on setting up Temboo account and gmail [here](https://temboo.com/arduino/others/send-an-email)
   - copy all the TEMBOO settings from the header section (normally Temboo.h) and put in Secrets.h
+- You can setup additional alarms as needed (such as no data alarms, low wifi strength, etc) by using thingspeaks ability to trigger IFTTT events [as described here](http://www.makeuseof.com/tag/ifttt-connect-anything-maker-channel/).
