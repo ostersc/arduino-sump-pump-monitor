@@ -1,7 +1,7 @@
 # arduino-sump-pump-monitor
 Arduino project for ESP8266 to monitor backup sump pump and water level, sending alerts upon issues.
 
-The project monitors my sump pump for when its backup pump engages, or when the main pump is running on battery power (due to power outage).  The project continually monitors the pumps, reporting data to phant (data.sparkfun.com) indicating the pump status.  The board is equiped with a LiPo battery backup, so it is still able to report in the event of a power outage.
+The project monitors my sump pump for when its backup pump engages, or when the main pump is running on battery power (due to power outage).  The project continually monitors the pumps, reporting data to thingspeak.com indicating the pump status.  The board is equiped with a LiPo battery backup, so it is still able to report in the event of a power outage.
 ![Graph](http://i.imgur.com/ybL46LY.png)
 
 ## PUMP
@@ -16,7 +16,7 @@ The Adafruit Feather HUZZAH actually looks easier to program; it should work as 
 
 ## CURRENT STATUS
 *  Sump alarm monitoring (backup pump used, power loss, fuse, or battery issue)
-*  Reporting to thingspeak (signal strength, alarm state, alarm duration, alarm count, rssi)
+*  Reporting to thingspeak (signal strength, alarm state, alarm duration, alarm count)
 * Email when alarm state entered (via https://temboo.com/arduino/others/send-an-email)
 
 ## TODO
