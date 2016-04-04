@@ -2,7 +2,7 @@
 #include <ESP8266WiFi.h>
 #include "WiFiManager.h"  //https://github.com/tzapu/WiFiManager
 #include "Temboo.h"  //https://temboo.com/library/ https://github.com/arduino-libraries/Temboo
-#include "ThingSpeak.h"
+#include "ThingSpeak.h" //https://github.com/mathworks/thingspeak-arduino
 #include "Secrets.h"
 /**
    COPY THESE INTO A FILE CALLED Secrets.h AND REPLACE THE VALUES FOR YOUR ACCOUNT
@@ -199,11 +199,11 @@ int checkAndReport() {
 }
 
 void loop() {
-  if (lastPost + postRate <= millis()) {
+  if (millis() - lastPost >= postRate) {
     if (checkAndReport()) {
       lastPost = millis();
     } else {
-      delay(100);
+      delay(2000);
     }
   }
 }
