@@ -11,17 +11,17 @@ http://www.basementwatchdog.com/Accessories/Remote_Terminal.php
 Any similar system could be used, or a homebrew sensor could be created, as all this "remote terminal" does is provide an open/closed circuit transition when triggering an alarm.
 
 ## HARDWARE
-I'm using the Sparkfun ESP8266 Thing (https://www.sparkfun.com/products/13231)
+I'm using the Sparkfun ESP8266 Thing (https://www.sparkfun.com/products/13231).
 The Adafruit Feather HUZZAH actually looks easier to program; it should work as well (https://www.adafruit.com/products/2821)
 ![Wiring](https://raw.githubusercontent.com/ostersc/arduino-sump-pump-monitor/master/HardwareDiagram_bb.jpg)
 
 ## CURRENT STATUS
 *  Sump alarm monitoring (backup pump used, power loss, fuse, or battery issue)
+*  Sump basin Water level alarm (moisture sensor mounted above backup float)
 *  Reporting to thingspeak (signal strength, alarm state, alarm duration, alarm count)
-* Email when alarm state entered (via https://temboo.com/arduino/others/send-an-email)
+* Email when alarm or water level alarm state entered (via https://temboo.com/arduino/others/send-an-email)
 
 ## TODO
-* Water level alarm (float switch or sonar level threshold)
 * Battery level monitoring (and maybe deep sleep) (via https://learn.adafruit.com/using-ifttt-with-adafruit-io/wiring#battery-tracking)
 * Collect settings and alert email via the wifi capture screen (via https://github.com/tzapu/WiFiManager#custom-parameters)
 * 3D print an enclosure
