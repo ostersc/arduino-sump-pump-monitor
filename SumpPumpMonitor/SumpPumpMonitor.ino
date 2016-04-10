@@ -6,10 +6,10 @@
 #include "Secrets.h"
 /**
    COPY THESE INTO A FILE CALLED Secrets.h AND REPLACE THE VALUES FOR YOUR ACCOUNT
-  #define TEMBOO_ACCOUNT "your account"  // Your Temboo account name 
+  #define TEMBOO_ACCOUNT "your account"  // Your Temboo account name
   #define TEMBOO_APP_KEY_NAME "myFirstApp"  // Your Temboo app key name
   #define TEMBOO_APP_KEY "your key"  // Your Temboo app key
-   
+
   #define EMAIL_USER "example@gmail.com"
   #define EMAIL_PASSWORD "asdfasdfasdfasdfasdf"
   #define EMAIL_TO "example@gmail.com"
@@ -20,26 +20,39 @@
   const char * myWriteAPIKey = "yourapikey";
 */
 
-#define EMAIL_SUBJECT "Sump Pump Alarm Triggered!"
+#define ALARM_EMAIL_SUBJECT "Sump Pump Alarm Triggered!"
+#define WATER_EMAIL_SUBJECT "Water in Sump Pump!"
 
 const char* SSID = "SumpPumpMonitor";
 
 //Thing's onboard LED
 const int LED_PIN = 5;
 // other pings available on Thing
-//const int ANALOG_PIN = A0;
+const int ANALOG_PIN = A0;
 //const int DIGITAL_PIN_1 = 0;
 //const int DIGITAL_PIN_2 = 4;
 //const int DIGITAL_PIN_3 = 12;
 //const int DIGITAL_PIN_4 = 13;
 const int ALARM_PIN = 4;
 
+const int NUM_READINGS = 20;
+
+int moistureReadings[NUM_READINGS];   // the readings from the analog input
+int moistureReadIndex = 0;            // the index of the current reading
+int moistureTotal = 0;                // the running total
+int moistureAverage = 0;              // the average
+int moistureState = LOW;
+int moistureAlarmCount = 0;
+const int moistureThreshold = 250;
+unsigned long lastMoistureAlarm = 0;
+#define DEBUG_MOISTURE false
+
 //thingspeak only lets report every 15 seconds or so
 const unsigned long postRate = 15000;
 unsigned long lastPost = 0;
+unsigned long lastAlarm = 0;
 int alarmState = LOW;
 int alarmCount = 0;
-unsigned long lastAlarm = 0;
 String macAddress;
 
 // Use WiFiClient class to create TCP connections
@@ -75,6 +88,7 @@ void setup() {
   //  pinMode(DIGITAL_PIN_3, INPUT_PULLUP);
   //  pinMode(DIGITAL_PIN_4, INPUT_PULLUP);
   pinMode(ALARM_PIN, INPUT_PULLUP);
+  pinMode(ANALOG_PIN, INPUT);
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
 
@@ -110,7 +124,7 @@ void setup() {
   ThingSpeak.begin(client);
 }
 
-void sendSumpAlert() {
+void sendSumpAlert(String alert) {
   DEBUG_PRINTLN("Sending alert email!");
   TembooChoreo SendEmailChoreo(client);
 
@@ -127,10 +141,10 @@ void sendSumpAlert() {
   SendEmailChoreo.addInput("FromAddress", EMAIL_FROM);
   SendEmailChoreo.addInput("Username", EMAIL_USER);
   SendEmailChoreo.addInput("ToAddress", EMAIL_TO);
-  SendEmailChoreo.addInput("Subject", EMAIL_SUBJECT);
+  SendEmailChoreo.addInput("Subject", alert);
   SendEmailChoreo.addInput("Password", EMAIL_PASSWORD);
-  String MessageBodyValue = "Sump pump alarm triggered!";
-  SendEmailChoreo.addInput("MessageBody", MessageBodyValue);
+  //TODO: add current values here
+  SendEmailChoreo.addInput("MessageBody", alert);
 
   // Identify the Choreo to run
   SendEmailChoreo.setChoreo("/Library/Google/Gmail/SendEmail");
@@ -152,6 +166,60 @@ void sendSumpAlert() {
   }
 }
 
+void updateMoistureLevel() {
+  int moistureLevel = analogRead(ANALOG_PIN);
+
+  // subtract the last reading:
+  moistureTotal = moistureTotal - moistureReadings[moistureReadIndex];
+  // read from the sensor:
+  moistureReadings[moistureReadIndex] = moistureLevel;
+  // add the reading to the total:
+  moistureTotal = moistureTotal + moistureReadings[moistureReadIndex];
+  // advance to the next position in the array:
+  moistureReadIndex += 1;
+
+  // if we're at the end of the array...
+  if (moistureReadIndex >= NUM_READINGS) {
+    // ...wrap around to the beginning:
+    moistureReadIndex = 0;
+  }
+
+  // calculate the average:
+  moistureAverage = moistureTotal / NUM_READINGS;
+
+  if (moistureState == LOW) {
+    if (moistureAverage > moistureThreshold) {
+      lastMoistureAlarm = millis();
+      moistureAlarmCount++;
+      moistureState = HIGH;
+      DEBUG_PRINT("Water detected at ");
+      DEBUG_PRINTLN(lastMoistureAlarm);
+      DEBUG_PRINT("Moisture detected! The moisture level is: ");
+      DEBUG_PRINTLN(moistureAverage);
+      sendSumpAlert(WATER_EMAIL_SUBJECT);
+    }
+  } else {
+    if (moistureAverage <= moistureThreshold ) {
+      DEBUG_PRINT("Water alarm ended at ");
+      DEBUG_PRINTLN(millis());
+      DEBUG_PRINT("Lasting for ");
+      DEBUG_PRINT((millis() - lastMoistureAlarm) / 1000);
+      DEBUG_PRINTLN(" seconds.");
+      DEBUG_PRINT("Moisture level below alarm threshold: ");
+      DEBUG_PRINTLN(moistureAverage);
+      moistureState = LOW;
+    }
+  }
+
+  if (DEBUG_MOISTURE) {
+    DEBUG_PRINT("\tCurrent moisture level:");
+    DEBUG_PRINTLN(moistureLevel);
+    DEBUG_PRINT("Moisture avg:  ");
+    DEBUG_PRINTLN(moistureAverage);
+  }
+}
+
+
 int checkAndReport() {
   DEBUG_PRINT("Sending data.");
 
@@ -164,7 +232,7 @@ int checkAndReport() {
       alarmCount++;
       DEBUG_PRINT("Alarm detected at ");
       DEBUG_PRINTLN(lastAlarm);
-      sendSumpAlert();
+      sendSumpAlert(ALARM_EMAIL_SUBJECT);
     } else if (alarmState == LOW) {
       DEBUG_PRINT("Alarm ended at ");
       DEBUG_PRINTLN(millis());
@@ -179,6 +247,11 @@ int checkAndReport() {
     alarmDuration = (millis() - lastAlarm) / 1000;
   }
 
+  int moistureAlarmDuration = 0;
+  if (moistureState == HIGH) {
+    moistureAlarmDuration = (millis() - lastMoistureAlarm) / 1000;
+  }
+
   // LED turns on when we enter, it'll go off when we
   // successfully post.
   digitalWrite(LED_PIN, HIGH);
@@ -187,8 +260,10 @@ int checkAndReport() {
   ThingSpeak.setField(2, alarmState);
   ThingSpeak.setField(3, alarmDuration);
   ThingSpeak.setField(4, alarmCount);
-  ThingSpeak.setField(5,  WiFi.RSSI());
-  ThingSpeak.setField(6,  String(millis(), DEC));
+  ThingSpeak.setField(5, moistureAverage);
+  ThingSpeak.setField(6, moistureAlarmCount);
+  ThingSpeak.setField(7,  moistureAlarmDuration);
+  ThingSpeak.setField(8,  WiFi.RSSI());
   DEBUG_PRINT("Sending data thingspeak.");
   // Write the fields that you've set all at once.
   ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
@@ -199,7 +274,9 @@ int checkAndReport() {
 }
 
 void loop() {
+  delay(100);
   if (millis() - lastPost >= postRate) {
+    updateMoistureLevel();
     if (checkAndReport()) {
       lastPost = millis();
     } else {
@@ -207,3 +284,4 @@ void loop() {
     }
   }
 }
+
